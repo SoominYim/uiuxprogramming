@@ -2,10 +2,82 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>나의 첫 웹페이지</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>초록달력 | 서비스 소개</title>
   </head>
   <body>
-    <h1>나의 첫 웹페이지</h1>
-    <p>안녕하세요! 처음 만든 웹페이지입니다.</p>
+    <!--
+    사용자: 처음 식물을 키우는 자취생
+    목적: 식물 관리 방법과 물주기 시기를 이해한다.
+    핵심 행동: 키우는 식물을 등록하고 물주기 알림을 이메일로 신청한다.
+    정보 순서: 서비스 소개 → 주요 기능 → 이용 방법 → 소식 받기
+    -->
+
+    <header>
+      <h1>초록달력</h1>
+      <p>처음 식물을 키우는 사람도 쉽게 관리할 수 있도록 돕습니다.</p>
+
+      <nav aria-label="주요 메뉴">
+        <a href="#about">서비스 소개</a>
+        <a href="#features">주요 기능</a>
+        <a href="#steps">이용 방법</a>
+        <a href="#subscribe">소식 받기</a>
+      </nav>
+    </header>
+
+    <main>
+      <section id="about">
+        <h2>서비스 소개</h2>
+        <h3>식물도 처음이라면</h3>
+        <p>물 주는 시기를 몰라도 초록달력이 알려드립니다.</p>
+
+        <img
+          src="./assets/images/service.jpg"
+          alt="화분에 물을 주는 사용자"
+          width="320"
+          style="max-width: 100%; height: auto;"
+        />
+      </section>
+
+      <section id="features">
+        <h2>주요 기능</h2>
+        <ul>
+          <li>
+            <h3>물주기 알림</h3>
+            <p>식물마다 필요한 주기에 맞춰 알려줍니다.</p>
+          </li>
+          <li>
+            <h3>식물 도감</h3>
+            <p>우리 집 식물의 이름과 특징을 찾아봅니다.</p>
+          </li>
+          <li>
+            <h3>성장 기록</h3>
+            <p>사진으로 식물의 변화를 기록합니다.</p>
+          </li>
+        </ul>
+      </section>
+
+      <section id="steps">
+        <h2>이용 방법</h2>
+        <ol>
+          <li>키우는 식물을 등록합니다.</li>
+          <li>물주기 알림을 받습니다.</li>
+          <li>성장 기록을 남기고 확인합니다.</li>
+        </ol>
+      </section>
+
+      <section id="subscribe">
+        <h2>소식 받기</h2>
+        <form>
+          <label for="email">이메일</label>
+          <input type="email" id="email" name="email" placeholder="name@example.com" />
+          <button type="submit">알림 받기</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>
+      <p>© 2026 초록달력</p>
+    </footer>
   </body>
 </html>
