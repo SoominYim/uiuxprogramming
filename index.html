@@ -21,6 +21,7 @@
       <a href="#about">서비스 소개</a>
       <a href="#features">주요 기능</a>
       <a href="#steps">이용 방법</a>
+      <a href="#interaction-practice">이용 설정</a>
       <a href="#subscribe">소식 받기</a>
     </nav>
   </header>
@@ -41,20 +42,44 @@
 
     <section id="features" class="content-section">
       <h2>주요 기능</h2>
-      <ul class="feature-list">
-        <li class="feature-card">
-          <h3>물주기 알림</h3>
-          <p>식물마다 필요한 주기에 맞춰 알려줍니다.</p>
-        </li>
-        <li class="feature-card">
-          <h3>식물 도감</h3>
-          <p>우리 집 식물의 이름과 특징을 찾아봅니다.</p>
-        </li>
-        <li class="feature-card">
-          <h3>성장 기록</h3>
-          <p>사진으로 식물의 변화를 기록합니다.</p>
-        </li>
-      </ul>
+
+      <div class="tabs" role="tablist" aria-label="주요 기능 선택">
+        <button id="tab-watering" class="tab is-active" type="button"
+          role="tab" aria-selected="true"
+          aria-controls="panel-watering" data-target="#panel-watering">
+          물주기 알림
+        </button>
+
+        <button id="tab-guide" class="tab" type="button"
+          role="tab" aria-selected="false"
+          aria-controls="panel-guide" data-target="#panel-guide">
+          식물 도감
+        </button>
+
+        <button id="tab-record" class="tab" type="button"
+          role="tab" aria-selected="false"
+          aria-controls="panel-record" data-target="#panel-record">
+          성장 기록
+        </button>
+      </div>
+
+      <div id="panel-watering" class="panel is-active" role="tabpanel"
+        aria-labelledby="tab-watering">
+        <h3>물주기 알림</h3>
+        <p>식물마다 필요한 주기에 맞춰 잊지 않도록 푸시 및 이메일 알림을 보내드립니다.</p>
+      </div>
+
+      <div id="panel-guide" class="panel" role="tabpanel"
+        aria-labelledby="tab-guide" hidden>
+        <h3>식물 도감</h3>
+        <p>우리 집 식물의 이름과 물주기 주기, 적정 일조량, 키우기 난이도 등 핵심 특징을 찾아봅니다.</p>
+      </div>
+
+      <div id="panel-record" class="panel" role="tabpanel"
+        aria-labelledby="tab-record" hidden>
+        <h3>성장 기록</h3>
+        <p>사진과 간단한 메모로 반려식물이 자라나는 매일의 변화를 기록하고 모아봅니다.</p>
+      </div>
     </section>
 
     <section id="steps" class="content-section">
@@ -64,6 +89,43 @@
         <li>물주기 알림을 받습니다.</li>
         <li>성장 기록을 남기고 확인합니다.</li>
       </ol>
+    </section>
+
+    <section id="interaction-practice" class="content-section settings-panel">
+      <h2>서비스 이용 설정</h2>
+
+      <div class="interaction-item">
+        <h3>화면 테마</h3>
+        <button id="themeButton" type="button">
+          어두운 테마로 바꾸기
+        </button>
+      </div>
+
+      <div class="interaction-item">
+        <label for="userName">반려식물 애칭 또는 사용자 이름</label>
+        <input
+          id="userName"
+          type="text"
+          maxlength="10"
+          placeholder="10자 이내로 입력"
+        >
+        <p id="userNameCount" aria-live="polite">0 / 10</p>
+      </div>
+
+      <div class="interaction-item">
+        <label class="agree-row" for="agreeCheck">
+          <input id="agreeCheck" type="checkbox">
+          초록달력 서비스 이용 안내를 확인했습니다.
+        </label>
+
+        <p id="agreeMessage" aria-live="polite">
+          안내 확인 후 서비스를 시작할 수 있습니다.
+        </p>
+
+        <button id="startButton" type="button" disabled>
+          서비스 시작하기
+        </button>
+      </div>
     </section>
 
     <section id="subscribe" class="content-section subscribe-section">
