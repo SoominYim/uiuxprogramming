@@ -234,9 +234,24 @@ if (plantBack3) {
   });
 }
 
-// 3단계 -> 4단계: 알림 신청 완료
+// 3단계 -> 4단계: 알림 신청 완료 및 목록에 추가 (중간고사 연동)
 if (plantComplete) {
   plantComplete.addEventListener("click", () => {
+    // 신청 완료 식물 데이터를 목록에 등록
+    const plantTypeOption = plantType.options[plantType.selectedIndex].text;
+    const cleanTypeName = plantTypeOption.split(" (")[0];
+    const newPlant = {
+      id: Date.now(),
+      name: plantName.value.trim(),
+      lastDate: plantDate.value,
+      type: plantType.value,
+      typeName: cleanTypeName,
+      cycleDays: plantCycleDays[plantType.value] || 7,
+      isWateredToday: false
+    };
+
+    registeredPlants.push(newPlant);
+    renderPlantList();
     showPlantStep(4);
   });
 }
@@ -256,3 +271,188 @@ if (plantRestart) {
     plantName.focus();
   });
 }
+
+// ==========================================
+// 중간고사: 내 반려식물 알림 목록 관리 (상태 갱신 / 알림 취소 / 빈 상태)
+// ==========================================
+
+const plantListSection = document.querySelector("#plantListSection");
+const plantCountBadge = document.querySelector("#plantCountBadge");
+const plantEmptyState = document.querySelector("#plantEmptyState");
+const plantCardsContainer = document.querySelector("#plantCardsContainer");
+const emptyAddButton = document.querySelector("#emptyAddButton");
+const viewListButton = document.querySelector("#viewListButton");
+
+// 식물 종류별 권장 주기 (일수)
+const plantCycleDays = {
+  monstera: 7,
+  succulent: 30,
+  pothos: 6,
+  tablepalm: 4
+};
+
+// 등록된 식물 목록 상태 배열
+let registeredPlants = [];
+
+// HTML 특수문자 이스케이프 함수
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// 날짜 객체를 YYYY-MM-DD 문자열로 변환하는 함수
+function formatDateToString(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// 다음 물주기 날짜 및 D-Day 계산 함수
+function calculateNextWatering(lastDateStr, cycleDays, isWateredToday) {
+  const [year, month, day] = lastDateStr.split("-").map(Number);
+  const nextDate = new Date(year, month - 1, day + cycleDays);
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const diffTime = nextDate.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  const nextDateStr = formatDateToString(nextDate);
+
+  if (isWateredToday) {
+    return {
+      ddayText: "오늘 완료 🌱",
+      badgeClass: "is-done",
+      nextDateStr: nextDateStr
+    };
+  }
+
+  if (diffDays === 0) {
+    return {
+      ddayText: "오늘 물주기! (D-Day)",
+      badgeClass: "is-urgent",
+      nextDateStr: nextDateStr
+    };
+  } else if (diffDays < 0) {
+    return {
+      ddayText: `물주기 ${Math.abs(diffDays)}일 지남!`,
+      badgeClass: "is-urgent",
+      nextDateStr: nextDateStr
+    };
+  } else if (diffDays <= 2) {
+    return {
+      ddayText: `D-${diffDays} (임박)`,
+      badgeClass: "is-urgent",
+      nextDateStr: nextDateStr
+    };
+  } else {
+    return {
+      ddayText: `D-${diffDays}`,
+      badgeClass: "is-normal",
+      nextDateStr: nextDateStr
+    };
+  }
+}
+
+// 식물 목록 화면 렌더링 함수
+function renderPlantList() {
+  if (!plantCountBadge || !plantEmptyState || !plantCardsContainer) return;
+
+  const count = registeredPlants.length;
+  plantCountBadge.textContent = `${count}개 관리 중`;
+
+  // 분기 1: 등록된 식물이 없는 경우 (결과 없음 빈 상태)
+  if (count === 0) {
+    plantEmptyState.hidden = false;
+    plantCardsContainer.hidden = true;
+    plantCardsContainer.innerHTML = "";
+    return;
+  }
+
+  // 분기 2: 등록된 식물이 있는 경우 (카드 목록 표시)
+  plantEmptyState.hidden = true;
+  plantCardsContainer.hidden = false;
+
+  plantCardsContainer.innerHTML = registeredPlants
+    .map((plant) => {
+      const info = calculateNextWatering(
+        plant.lastDate,
+        plant.cycleDays,
+        plant.isWateredToday
+      );
+
+      return `
+        <article class="plant-card" data-id="${plant.id}">
+          <div>
+            <div class="card-top">
+              <div>
+                <h3 class="plant-title">${escapeHtml(plant.name)}</h3>
+                <span class="plant-type-tag">${escapeHtml(plant.typeName)} (권장: ${plant.cycleDays}일마다)</span>
+              </div>
+              <span class="dday-badge ${info.badgeClass}">${info.ddayText}</span>
+            </div>
+            <div class="plant-meta">
+              <p><strong>마지막 물 준 날:</strong> ${plant.lastDate}</p>
+              <p><strong>다음 물주기 예정:</strong> ${info.nextDateStr}</p>
+            </div>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn-water" data-action="water" data-id="${plant.id}">
+              🌱 오늘 물주기 완료
+            </button>
+            <button type="button" class="btn-delete" data-action="delete" data-id="${plant.id}">
+              알림 취소
+            </button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+// 4단계 완료 화면에서 '내 알림 목록 보기' 클릭 시 스크롤 이동
+if (viewListButton && plantListSection) {
+  viewListButton.addEventListener("click", () => {
+    plantListSection.scrollIntoView({ behavior: "smooth" });
+  });
+}
+
+// 빈 상태에서 '식물 등록하러 가기' 클릭 시 1단계로 이동
+if (emptyAddButton && plantFlow) {
+  emptyAddButton.addEventListener("click", () => {
+    plantFlow.hidden = false;
+    showPlantStep(1);
+    plantFlow.scrollIntoView({ behavior: "smooth" });
+    plantName.focus();
+  });
+}
+
+// 카드 내 이벤트 위임: '오늘 물주기 완료'(상태 갱신) 및 '알림 취소'(삭제)
+if (plantCardsContainer) {
+  plantCardsContainer.addEventListener("click", (event) => {
+    const target = event.target.closest("button");
+    if (!target) return;
+
+    const action = target.dataset.action;
+    const id = Number(target.dataset.id);
+    const plant = registeredPlants.find((item) => item.id === id);
+    if (!plant) return;
+
+    if (action === "water") {
+      // 오늘 날짜로 마지막 물 준 날짜 갱신 및 상태 플래그 설정
+      const todayStr = formatDateToString(new Date());
+      plant.lastDate = todayStr;
+      plant.isWateredToday = true;
+      renderPlantList();
+    } else if (action === "delete") {
+      // 알림 취소: 배열에서 해당 식물 제거
+      registeredPlants = registeredPlants.filter((item) => item.id !== id);
+      renderPlantList();
+    }
+  });
+}
+
+// 초기 화면 로드 시 목록 상태 초기화
+renderPlantList();
