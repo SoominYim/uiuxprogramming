@@ -541,5 +541,227 @@ body.dark input[type="email"] {
   .primary-button {
     min-height: 48px;
   }
+
+  /* 7주차 모바일 스타일 */
+  .plant-step {
+    padding: 16px;
+  }
+
+  .step-buttons {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .plant-step button,
+  .step-button {
+    width: 100%;
+    margin-top: 8px;
+  }
 }
+
+/* ==========================================
+   7주차: 사용자 흐름 및 인터랙션 시나리오 스타일
+   ========================================== */
+
+#plantFlow {
+  margin-top: 24px;
+}
+
+#plantFlow[hidden],
+.plant-step[hidden],
+#plantHelp[hidden] {
+  display: none;
+}
+
+.flow-progress {
+  display: inline-block;
+  margin-bottom: 20px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d6a4f;
+  background-color: #e5f4ec;
+}
+
+.plant-step {
+  padding: 24px;
+  border: 1px solid #deddea;
+  border-radius: 12px;
+  background-color: #ffffff;
+}
+
+.plant-step h3 {
+  margin-bottom: 16px;
+  font-size: 20px;
+  color: #1b4332;
+}
+
+.plant-step label {
+  display: block;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.plant-step label:first-of-type {
+  margin-top: 0;
+}
+
+.plant-step input[type="text"],
+.plant-step input[type="date"],
+.plant-step select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid #bccac0;
+  border-radius: 8px;
+  font: inherit;
+  background-color: #ffffff;
+}
+
+.plant-step input[type="text"]:focus,
+.plant-step input[type="date"]:focus,
+.plant-step select:focus {
+  border-color: #2d6a4f;
+  outline: 3px solid #b7e4c7;
+  outline-offset: 2px;
+}
+
+.error-message {
+  margin: 10px 0 0;
+  color: #9d2439;
+  font-size: 14px;
+  font-weight: 700;
+  min-height: 20px;
+}
+
+.plant-step .has-error {
+  border-color: #9d2439 !important;
+  background-color: #fff8f8;
+}
+
+.plant-step .has-error:focus {
+  outline-color: #f8d7da;
+}
+
+.help-text {
+  margin: 14px 0 0;
+  padding: 12px 16px;
+  border-left: 4px solid #2d6a4f;
+  border-radius: 4px;
+  background-color: #eef7f2;
+  color: #1b4332;
+  font-size: 14px;
+}
+
+.summary-box {
+  padding: 16px 20px;
+  border: 1px solid #cde5d7;
+  border-radius: 10px;
+  background-color: #f2f9f4;
+  margin-bottom: 12px;
+}
+
+.summary-box p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1b4332;
+  line-height: 1.6;
+}
+
+.summary-guide {
+  margin-bottom: 24px;
+  color: #5e6272;
+  font-size: 14px;
+}
+
+.complete-message {
+  color: #5e6272;
+  font-size: 16px;
+  margin-bottom: 24px;
+}
+
+.step-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.step-button {
+  margin-top: 20px;
+}
+
+.secondary-button {
+  padding: 12px 18px;
+  border: 1px solid #bccac0;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #292a31;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.secondary-button:hover {
+  background-color: #f0f2f0;
+  border-color: #8f9e93;
+}
+
+.secondary-button:focus {
+  outline: 3px solid #b7e4c7;
+  outline-offset: 2px;
+}
+
+/* 7주차 다크 테마 대응 */
+body.dark .plant-step {
+  border-color: #50515f;
+  background-color: #2d2e38;
+}
+
+body.dark .plant-step h3 {
+  color: #74c69d;
+}
+
+body.dark .flow-progress {
+  color: #b7e4c7;
+  background-color: #1e3a2b;
+}
+
+body.dark .plant-step input[type="text"],
+body.dark .plant-step input[type="date"],
+body.dark .plant-step select {
+  background-color: #252630;
+  border-color: #50515f;
+  color: #f4f4f8;
+}
+
+body.dark .help-text {
+  background-color: #1e3a2b;
+  color: #b7e4c7;
+  border-left-color: #74c69d;
+}
+
+body.dark .summary-box {
+  background-color: #252630;
+  border-color: #50515f;
+}
+
+body.dark .summary-box p {
+  color: #74c69d;
+}
+
+body.dark .secondary-button {
+  background-color: #252630;
+  border-color: #50515f;
+  color: #f4f4f8;
+}
+
+body.dark .secondary-button:hover {
+  background-color: #3b3c48;
+}
+
 
