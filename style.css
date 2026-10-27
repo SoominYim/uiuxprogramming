@@ -1036,3 +1036,174 @@ body.dark .btn-delete:hover {
 }
 
 
+
+/* ==========================================
+   9주차: 폼 UI와 입력 경험 설계 스타일
+   ========================================== */
+
+.required {
+  margin-left: 4px;
+  color: #b02a37;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.field {
+  margin-bottom: 18px;
+}
+
+.field-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.field-meta p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: #5e6272;
+}
+
+#plant-name-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.field-error {
+  min-height: 20px;
+  margin: 6px 0 0;
+  color: #b02a37;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.field.is-valid input {
+  border-color: #2d6a4f;
+  background-color: #f6fcf8;
+}
+
+.field.is-valid #plant-name-help {
+  color: #1b4332;
+  font-weight: 700;
+}
+
+.field.has-error input {
+  border-color: #b02a37 !important;
+  background-color: #fff8f8;
+}
+
+/* 9주차 조건부 입력 (영양제 알림) */
+.nutrition-field {
+  margin-top: 18px;
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #dce4de;
+  border-radius: 10px;
+  background-color: #fcfdfc;
+}
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.check-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  cursor: pointer;
+}
+
+.check-row span {
+  display: flex;
+  flex-direction: column;
+}
+
+.check-row small {
+  color: #5e6272;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.nutrition-options {
+  margin-top: 14px;
+  padding: 14px 18px;
+  border: 1px dashed #bccac0;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.nutrition-options legend {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2d6a4f;
+}
+
+.inline-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.inline-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 0;
+}
+
+.inline-options input[type="radio"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.inline-options input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+/* 9주차 제출 상태 및 피드백 */
+.submit-status {
+  min-height: 24px;
+  margin: 12px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d6a4f;
+}
+
+form[aria-busy="true"] button[type="submit"] {
+  opacity: 0.8;
+  cursor: wait;
+}
+
+/* 9주차 다크 테마 대응 */
+body.dark .field.is-valid input {
+  border-color: #74c69d;
+  background-color: #1e3a2b;
+}
+
+body.dark .field.is-valid #plant-name-help {
+  color: #b7e4c7;
+}
+
+body.dark .nutrition-field {
+  border-color: #50515f;
+  background-color: #252630;
+}
+
+body.dark .nutrition-options {
+  border-color: #50515f;
+  background-color: #2d2e38;
+}
+
+body.dark .nutrition-options legend {
+  color: #74c69d;
+}
+
+body.dark .submit-status {
+  color: #74c69d;
+}

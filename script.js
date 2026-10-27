@@ -149,18 +149,36 @@ tabs.forEach(function (tab) {
 });
 
 // ==========================================
-// 7주차: 사용자 흐름 및 인터랙션 시나리오
+// 7주차 및 9주차: 사용자 흐름과 폼 UI & 입력 경험 설계
 // ==========================================
 
 const plantFlow = document.querySelector("#plantFlow");
+const plantForm = document.querySelector("#plantForm");
 const plantSteps = document.querySelectorAll(".plant-step");
 const plantProgress = document.querySelector("#plantProgress");
+
+const plantNameField = document.querySelector("#plant-name-field");
 const plantName = document.querySelector("#plantName");
+const plantNameHelp = document.querySelector("#plant-name-help");
+const plantNameCount = document.querySelector("#plant-name-count");
+const plantNameError = document.querySelector("#plant-name-error");
+
+const plantDateField = document.querySelector("#plant-date-field");
 const plantDate = document.querySelector("#plantDate");
+const plantDateError = document.querySelector("#plant-date-error");
+
 const plantType = document.querySelector("#plantType");
-const plantError = document.querySelector("#plantError");
 const plantHelp = document.querySelector("#plantHelp");
 const plantSummary = document.querySelector("#plantSummary");
+
+// 9주차 조건부 입력 요소
+const nutritionOption = document.querySelector("#nutrition-option");
+const nutritionOptions = document.querySelector("#nutrition-options");
+const nutritionCycleInputs = [...document.querySelectorAll('input[name="nutrition-cycle"]')];
+
+// 9주차 제출 상태 및 실패 테스트 요소
+const submitStatus = document.querySelector("#submit-status");
+const forceSaveFailure = new URLSearchParams(location.search).has("save-error");
 
 const plantNext1 = document.querySelector("#plantNext1");
 const plantBack2 = document.querySelector("#plantBack2");
@@ -170,35 +188,145 @@ const plantComplete = document.querySelector("#plantComplete");
 const plantRestart = document.querySelector("#plantRestart");
 
 const stepNames = ["식물 정보 입력", "식물 종류 선택", "신청 내용 확인"];
+let currentPlantStep = 1;
 
-// 단계 표시 및 진행도 갱신 함수
+// 단계 표시 및 진행도 갱신 함수 (단계 제목에 초점 이동 포함)
 function showPlantStep(step) {
+  currentPlantStep = step;
   plantSteps.forEach((item) => {
     item.hidden = Number(item.dataset.step) !== step;
   });
   plantProgress.textContent =
     step <= 3 ? `${step} / 3 · ${stepNames[step - 1]}` : "신청 완료";
+
+  if (step >= 1 && step <= 4) {
+    const heading = plantSteps[step - 1].querySelector("h3");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  }
 }
 
-// 1단계 -> 2단계: 필수값(이름, 날짜) 검증
+// 9주차 유닛 01: 조건부 입력 상태 갱신 함수
+function syncNutritionFields() {
+  if (!nutritionOption || !nutritionOptions) return;
+  const open = nutritionOption.checked;
+  nutritionOption.setAttribute("aria-expanded", String(open));
+  nutritionOptions.hidden = !open;
+  nutritionCycleInputs.forEach((input) => {
+    input.disabled = !open;
+  });
+}
+
+if (nutritionOption) {
+  nutritionOption.addEventListener("change", syncNutritionFields);
+  syncNutritionFields();
+}
+
+// 9주차 유닛 02: 실시간 글자 수 및 조건 충족 상태 갱신
+function updatePlantNameExperience() {
+  if (!plantName || !plantNameCount || !plantNameField || !plantNameHelp) return;
+  const length = plantName.value.length;
+  const enough = plantName.value.trim().length >= 2;
+  const invalid = plantName.getAttribute("aria-invalid") === "true";
+
+  plantNameCount.textContent = `${length} / 20자`;
+  plantNameField.classList.toggle("is-valid", enough && !invalid);
+
+  if (!invalid) {
+    plantNameHelp.textContent = enough
+      ? "입력 조건을 충족했습니다."
+      : "식물을 구분할 수 있도록 2자 이상 입력해 주세요.";
+  }
+}
+
+// 9주차 유닛 03: 오류 표시 및 해제 함수
+function showPlantNameError(message) {
+  if (!plantName || !plantNameError || !plantNameField) return false;
+  plantName.setAttribute("aria-invalid", "true");
+  plantNameError.textContent = message;
+  plantNameField.classList.remove("is-valid");
+  plantNameField.classList.add("has-error");
+  return false;
+}
+
+function clearPlantNameError() {
+  if (!plantName || !plantNameError || !plantNameField) return;
+  plantName.removeAttribute("aria-invalid");
+  plantNameError.textContent = "";
+  plantNameField.classList.remove("has-error");
+  updatePlantNameExperience();
+}
+
+function validatePlantName() {
+  const name = plantName ? plantName.value.trim() : "";
+  if (!name) {
+    return showPlantNameError("식물 이름(애칭)을 입력해 주세요.");
+  }
+  if (name.length < 2) {
+    return showPlantNameError("식물 이름을 2자 이상 입력해 주세요.");
+  }
+  clearPlantNameError();
+  return true;
+}
+
+function showPlantDateError(message) {
+  if (!plantDate || !plantDateError || !plantDateField) return false;
+  plantDate.setAttribute("aria-invalid", "true");
+  plantDateError.textContent = message;
+  plantDateField.classList.add("has-error");
+  return false;
+}
+
+function clearPlantDateError() {
+  if (!plantDate || !plantDateError || !plantDateField) return;
+  plantDate.removeAttribute("aria-invalid");
+  plantDateError.textContent = "";
+  plantDateField.classList.remove("has-error");
+}
+
+function validatePlantDate() {
+  if (!plantDate || !plantDate.value) {
+    return showPlantDateError("마지막으로 물 준 날짜를 선택해 주세요.");
+  }
+  clearPlantDateError();
+  return true;
+}
+
+// 입력 중 실시간 검증 이벤트
+if (plantName) {
+  plantName.addEventListener("input", () => {
+    updatePlantNameExperience();
+    if (plantName.getAttribute("aria-invalid") === "true") {
+      validatePlantName();
+    }
+  });
+}
+
+if (plantDate) {
+  plantDate.addEventListener("change", () => {
+    if (plantDate.getAttribute("aria-invalid") === "true") {
+      validatePlantDate();
+    }
+  });
+}
+
+// 1단계 -> 2단계: 필수값 검증 및 첫 오류 필드로 초점 이동
 if (plantNext1) {
   plantNext1.addEventListener("click", () => {
-    const missingName = !plantName.value.trim();
-    const missingDate = !plantDate.value;
+    const isNameValid = validatePlantName();
+    const isDateValid = validatePlantDate();
 
-    if (missingName || missingDate) {
-      plantError.textContent = missingName
-        ? "식물 이름(애칭)을 입력해 주세요."
-        : "마지막으로 물 준 날짜를 선택해 주세요.";
-      plantName.classList.toggle("has-error", missingName);
-      plantDate.classList.toggle("has-error", missingDate);
-      (missingName ? plantName : plantDate).focus();
+    if (!isNameValid || !isDateValid) {
+      if (!isNameValid) {
+        plantName.focus();
+      } else {
+        plantDate.focus();
+      }
       return;
     }
 
-    plantError.textContent = "";
-    plantName.classList.remove("has-error");
-    plantDate.classList.remove("has-error");
     showPlantStep(2);
   });
 }
@@ -222,7 +350,12 @@ if (plantBack2) {
 if (plantNext2) {
   plantNext2.addEventListener("click", () => {
     const selectedTypeName = plantType.options[plantType.selectedIndex].text;
-    plantSummary.textContent = `${plantName.value.trim()} · 마지막 물 준 날: ${plantDate.value} · ${selectedTypeName}`;
+    const nutritionChecked = nutritionOption && nutritionOption.checked;
+    const selectedRadio = nutritionCycleInputs.find((r) => r.checked);
+    const nutritionCycleText = nutritionChecked && selectedRadio ? selectedRadio.value : "미설정";
+    const nutritionLabel = nutritionChecked ? ` · 영양제 알림: ${nutritionCycleText}` : "";
+
+    plantSummary.textContent = `${plantName.value.trim()} · 마지막 물 준 날: ${plantDate.value} · ${selectedTypeName}${nutritionLabel}`;
     showPlantStep(3);
   });
 }
@@ -234,12 +367,63 @@ if (plantBack3) {
   });
 }
 
-// 3단계 -> 4단계: 알림 신청 완료 및 목록에 추가 (중간고사 연동)
-if (plantComplete) {
-  plantComplete.addEventListener("click", () => {
-    // 신청 완료 식물 데이터를 목록에 등록
+// 9주차 유닛 03: 폼 submit 이벤트와 저장/로딩 상태 처리
+function setSubmitState(loading, message) {
+  if (plantForm) {
+    plantForm.setAttribute("aria-busy", String(loading));
+  }
+  if (plantComplete) {
+    plantComplete.disabled = loading;
+    plantComplete.textContent = loading ? "저장하는 중…" : "알림 신청 완료하기 →";
+  }
+  if (submitStatus) {
+    submitStatus.textContent = message;
+  }
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+async function persistPlantPlan(newPlant) {
+  await wait(600);
+
+  if (forceSaveFailure) {
+    throw new Error("수업용 저장 실패 시뮬레이션");
+  }
+
+  registeredPlants.push(newPlant);
+  renderPlantList();
+}
+
+if (plantForm) {
+  plantForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (currentPlantStep === 1) {
+      if (plantNext1) plantNext1.click();
+      return;
+    }
+
+    if (currentPlantStep !== 3) return;
+
+    const isNameValid = validatePlantName();
+    const isDateValid = validatePlantDate();
+
+    if (!isNameValid || !isDateValid) {
+      showPlantStep(1);
+      window.requestAnimationFrame(() => {
+        plantForm.querySelector('[aria-invalid="true"]')?.focus();
+      });
+      return;
+    }
+
     const plantTypeOption = plantType.options[plantType.selectedIndex].text;
     const cleanTypeName = plantTypeOption.split(" (")[0];
+    const nutritionChecked = nutritionOption && nutritionOption.checked;
+    const selectedRadio = nutritionCycleInputs.find((r) => r.checked);
+    const nutritionCycleText = nutritionChecked && selectedRadio ? selectedRadio.value : null;
+
     const newPlant = {
       id: Date.now(),
       name: plantName.value.trim(),
@@ -247,28 +431,44 @@ if (plantComplete) {
       type: plantType.value,
       typeName: cleanTypeName,
       cycleDays: plantCycleDays[plantType.value] || 7,
+      nutrition: nutritionCycleText,
       isWateredToday: false
     };
 
-    registeredPlants.push(newPlant);
-    renderPlantList();
-    showPlantStep(4);
+    setSubmitState(true, "알림 신청을 저장하고 있습니다.");
+
+    try {
+      await persistPlantPlan(newPlant);
+      setSubmitState(false, "알림 신청이 성공적으로 완료되었습니다.");
+      showPlantStep(4);
+    } catch {
+      setSubmitState(
+        false,
+        "저장하지 못했습니다. 입력한 내용은 그대로 두었습니다. 다시 시도해 주세요."
+      );
+    }
   });
 }
 
-// 4단계 -> 다시 시작: 모든 입력값과 상태 초기화 후 1단계 복귀
+// 4단계 -> 다시 시작: 모든 입력값과 화면 상태 완전 초기화
 if (plantRestart) {
   plantRestart.addEventListener("click", () => {
-    plantName.value = "";
-    plantDate.value = "";
-    plantType.value = "monstera";
-    plantError.textContent = "";
-    plantName.classList.remove("has-error");
-    plantDate.classList.remove("has-error");
-    plantHelp.hidden = true;
-    plantSummary.textContent = "";
+    if (plantForm) plantForm.reset();
+    syncNutritionFields();
+
+    if (plantNameCount) plantNameCount.textContent = "0 / 20자";
+    if (plantNameHelp) plantNameHelp.textContent = "식물을 구분할 수 있도록 2자 이상 입력해 주세요.";
+    if (plantNameError) plantNameError.textContent = "";
+    if (plantDateError) plantDateError.textContent = "";
+
+    if (plantName) plantName.removeAttribute("aria-invalid");
+    if (plantDate) plantDate.removeAttribute("aria-invalid");
+    if (plantNameField) plantNameField.classList.remove("is-valid", "has-error");
+    if (plantDateField) plantDateField.classList.remove("has-error");
+    setSubmitState(false, "");
+
     showPlantStep(1);
-    plantName.focus();
+    if (plantName) plantName.focus();
   });
 }
 
@@ -396,6 +596,7 @@ function renderPlantList() {
             <div class="plant-meta">
               <p><strong>마지막 물 준 날:</strong> ${plant.lastDate}</p>
               <p><strong>다음 물주기 예정:</strong> ${info.nextDateStr}</p>
+              ${plant.nutrition ? `<p><strong>영양제 알림:</strong> ${escapeHtml(plant.nutrition)}</p>` : ""}
             </div>
           </div>
           <div class="card-actions">
