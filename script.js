@@ -432,7 +432,8 @@ if (plantForm) {
       typeName: cleanTypeName,
       cycleDays: plantCycleDays[plantType.value] || 7,
       nutrition: nutritionCycleText,
-      isWateredToday: false
+      isWateredToday: false,
+      cancelled: false
     };
 
     setSubmitState(true, "알림 신청을 저장하고 있습니다.");
@@ -473,8 +474,17 @@ if (plantRestart) {
 }
 
 // ==========================================
-// 중간고사: 내 반려식물 알림 목록 관리 (상태 갱신 / 알림 취소 / 빈 상태)
+// 10주차: 내비게이션 UI, 현재 위치 감지, 목록 필터 & 탐색
 // ==========================================
+
+// 내비게이션 및 모바일 메뉴 요소
+const navLinks = document.querySelectorAll(".main-nav a");
+const menuToggle = document.querySelector("#menu-toggle");
+const mainNav = document.querySelector("#main-nav");
+
+// 10주차 필터 버튼 및 상태
+const filterButtons = document.querySelectorAll(".filter-button");
+let currentFilter = "all";
 
 const plantListSection = document.querySelector("#plantListSection");
 const plantCountBadge = document.querySelector("#plantCountBadge");
@@ -493,6 +503,54 @@ const plantCycleDays = {
 
 // 등록된 식물 목록 상태 배열
 let registeredPlants = [];
+
+// 1. 현재 메뉴 위치 표시 함수
+function updateCurrentNav() {
+  const currentHash = window.location.hash;
+
+  navLinks.forEach((link) => {
+    const current = currentHash
+      ? link.getAttribute("href") === currentHash
+      : link === navLinks[0];
+
+    link.classList.toggle("is-current", current);
+
+    if (current) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+}
+
+window.addEventListener("hashchange", updateCurrentNav);
+updateCurrentNav();
+
+// 2. 모바일 메뉴 열기/닫기 토글
+if (menuToggle && mainNav) {
+  menuToggle.addEventListener("click", () => {
+    const isOpen = mainNav.classList.toggle("is-open");
+    menuToggle.textContent = isOpen ? "메뉴 닫기" : "메뉴 열기";
+    menuToggle.setAttribute("aria-expanded", String(isOpen));
+  });
+}
+
+// 3. 목적지 선택 시 모바일 메뉴 자동 닫기 및 알림 신청 섹션 열기
+navLinks.forEach((link) => {
+  link.addEventListener("click", () => {
+    if (mainNav && menuToggle) {
+      mainNav.classList.remove("is-open");
+      menuToggle.textContent = "메뉴 열기";
+      menuToggle.setAttribute("aria-expanded", "false");
+    }
+
+    const targetHash = link.getAttribute("href");
+    if (targetHash === "#plantFlow" && plantFlow) {
+      plantFlow.hidden = false;
+      showPlantStep(1);
+    }
+  });
+});
 
 // HTML 특수문자 이스케이프 함수
 function escapeHtml(text) {
@@ -556,26 +614,57 @@ function calculateNextWatering(lastDateStr, cycleDays, isWateredToday) {
   }
 }
 
-// 식물 목록 화면 렌더링 함수
+// 4. 10주차 조건에 맞는 식물 목록 필터링 함수
+function getVisiblePlants() {
+  return registeredPlants.filter((plant) => {
+    if (currentFilter === "all") return true;
+    if (currentFilter === "cancelled") return Boolean(plant.cancelled);
+    return !plant.cancelled; // "active" (관리 중)
+  });
+}
+
+// 5. 식물 목록 화면 렌더링 함수
 function renderPlantList() {
   if (!plantCountBadge || !plantEmptyState || !plantCardsContainer) return;
 
-  const count = registeredPlants.length;
-  plantCountBadge.textContent = `${count}개 관리 중`;
+  const visiblePlants = getVisiblePlants();
+  const count = visiblePlants.length;
+  const isFiltered = currentFilter !== "all";
 
-  // 분기 1: 등록된 식물이 없는 경우 (결과 없음 빈 상태)
+  // 상태 뱃지 및 접근성 안내 갱신
+  const statusLabel = currentFilter === "cancelled" ? "알림 취소됨" : "관리 중";
+  plantCountBadge.textContent = `${count}개 ${statusLabel}`;
+  plantCountBadge.setAttribute("aria-label", `현재 표시 중인 식물 ${count}개`);
+
+  const emptyTitle = plantEmptyState.querySelector(".empty-title");
+  const emptyDesc = plantEmptyState.querySelector(".empty-desc");
+  const emptyActionBtn = document.querySelector("#emptyAddButton");
+
+  // 분기 1: 표시할 식물이 없는 경우
   if (count === 0) {
     plantEmptyState.hidden = false;
     plantCardsContainer.hidden = true;
     plantCardsContainer.innerHTML = "";
+
+    if (isFiltered) {
+      // 특정 필터 선택 시 결과 없음
+      if (emptyTitle) emptyTitle.textContent = "선택한 상태의 반려식물이 없어요.";
+      if (emptyDesc) emptyDesc.textContent = "다른 상태 필터를 선택하여 등록된 식물을 확인해 보세요.";
+      if (emptyActionBtn) emptyActionBtn.hidden = true;
+    } else {
+      // 전체 목록이 아예 없을 때
+      if (emptyTitle) emptyTitle.textContent = "등록된 반려식물 알림이 없습니다";
+      if (emptyDesc) emptyDesc.textContent = "위의 물주기 알림 신청을 통해 키우시는 식물을 등록해 보세요.";
+      if (emptyActionBtn) emptyActionBtn.hidden = false;
+    }
     return;
   }
 
-  // 분기 2: 등록된 식물이 있는 경우 (카드 목록 표시)
+  // 분기 2: 표시할 식물이 있는 경우 (카드 목록 표시)
   plantEmptyState.hidden = true;
   plantCardsContainer.hidden = false;
 
-  plantCardsContainer.innerHTML = registeredPlants
+  plantCardsContainer.innerHTML = visiblePlants
     .map((plant) => {
       const info = calculateNextWatering(
         plant.lastDate,
@@ -583,35 +672,64 @@ function renderPlantList() {
         plant.isWateredToday
       );
 
+      const isCancelled = Boolean(plant.cancelled);
+
       return `
-        <article class="plant-card" data-id="${plant.id}">
+        <article class="plant-card ${isCancelled ? "is-cancelled" : ""}" data-id="${plant.id}">
           <div>
             <div class="card-top">
               <div>
                 <h3 class="plant-title">${escapeHtml(plant.name)}</h3>
                 <span class="plant-type-tag">${escapeHtml(plant.typeName)} (권장: ${plant.cycleDays}일마다)</span>
               </div>
-              <span class="dday-badge ${info.badgeClass}">${info.ddayText}</span>
+              <span class="dday-badge ${isCancelled ? "is-cancelled" : info.badgeClass}">
+                ${isCancelled ? "알림 취소됨" : info.ddayText}
+              </span>
             </div>
             <div class="plant-meta">
               <p><strong>마지막 물 준 날:</strong> ${plant.lastDate}</p>
-              <p><strong>다음 물주기 예정:</strong> ${info.nextDateStr}</p>
+              <p><strong>다음 물주기 예정:</strong> ${isCancelled ? "알림 중단됨" : info.nextDateStr}</p>
               ${plant.nutrition ? `<p><strong>영양제 알림:</strong> ${escapeHtml(plant.nutrition)}</p>` : ""}
             </div>
           </div>
           <div class="card-actions">
-            <button type="button" class="btn-water" data-action="water" data-id="${plant.id}">
-              🌱 오늘 물주기 완료
-            </button>
-            <button type="button" class="btn-delete" data-action="delete" data-id="${plant.id}">
-              알림 취소
-            </button>
+            ${
+              isCancelled
+                ? `
+              <button type="button" class="btn-restore" data-action="restore" data-id="${plant.id}">
+                ↺ 알림 다시 시작하기
+              </button>
+            `
+                : `
+              <button type="button" class="btn-water" data-action="water" data-id="${plant.id}">
+                🌱 오늘 물주기 완료
+              </button>
+              <button type="button" class="btn-delete" data-action="cancel" data-id="${plant.id}">
+                알림 취소
+              </button>
+            `
+            }
           </div>
         </article>
       `;
     })
     .join("");
 }
+
+// 6. 필터 버튼 클릭 이벤트 연결
+filterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    currentFilter = button.dataset.filter;
+
+    filterButtons.forEach((item) => {
+      const selected = item === button;
+      item.classList.toggle("is-active", selected);
+      item.setAttribute("aria-pressed", String(selected));
+    });
+
+    renderPlantList();
+  });
+});
 
 // 4단계 완료 화면에서 '내 알림 목록 보기' 클릭 시 스크롤 이동
 if (viewListButton && plantListSection) {
@@ -630,7 +748,7 @@ if (emptyAddButton && plantFlow) {
   });
 }
 
-// 카드 내 이벤트 위임: '오늘 물주기 완료'(상태 갱신) 및 '알림 취소'(삭제)
+// 카드 내 이벤트 위임: '오늘 물주기 완료'(상태 갱신), '알림 취소', '알림 다시 시작'
 if (plantCardsContainer) {
   plantCardsContainer.addEventListener("click", (event) => {
     const target = event.target.closest("button");
@@ -642,14 +760,15 @@ if (plantCardsContainer) {
     if (!plant) return;
 
     if (action === "water") {
-      // 오늘 날짜로 마지막 물 준 날짜 갱신 및 상태 플래그 설정
       const todayStr = formatDateToString(new Date());
       plant.lastDate = todayStr;
       plant.isWateredToday = true;
       renderPlantList();
-    } else if (action === "delete") {
-      // 알림 취소: 배열에서 해당 식물 제거
-      registeredPlants = registeredPlants.filter((item) => item.id !== id);
+    } else if (action === "cancel") {
+      plant.cancelled = true;
+      renderPlantList();
+    } else if (action === "restore") {
+      plant.cancelled = false;
       renderPlantList();
     }
   });

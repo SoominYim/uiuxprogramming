@@ -13,18 +13,27 @@
     핵심 행동: 키우는 식물을 등록하고 물주기 알림을 이메일로 신청한다.
     정보 순서: 서비스 소개 → 주요 기능 → 이용 방법 → 소식 받기 -->
   <header class="site-header">
-    <p class="eyebrow">PLANT CARE CALENDAR</p>
-    <h1>초록달력</h1>
-    <p class="header-description">처음 식물을 키우는 사람도 쉽게 관리할 수 있도록 돕습니다.</p>
+    <div class="header-inner">
+      <div class="brand">
+        <p class="eyebrow">PLANT CARE CALENDAR</p>
+        <h1 class="site-title"><a href="#about">초록달력</a></h1>
+      </div>
 
-    <nav class="site-nav" aria-label="주요 메뉴">
-      <a href="#about">서비스 소개</a>
-      <a href="#features">주요 기능</a>
-      <a href="#steps">이용 방법</a>
-      <a href="#interaction-practice">이용 설정</a>
-      <a href="#plantListSection">알림 목록</a>
-      <a href="#subscribe">소식 받기</a>
-    </nav>
+      <button id="menu-toggle" class="menu-toggle" type="button"
+        aria-controls="main-nav" aria-expanded="false">
+        메뉴 열기
+      </button>
+
+      <nav id="main-nav" class="main-nav" aria-label="주요 메뉴">
+        <ul>
+          <li><a href="#about">서비스 소개</a></li>
+          <li><a href="#features">주요 기능</a></li>
+          <li><a href="#plantFlow">알림 신청</a></li>
+          <li><a href="#plantListSection">내 식물 알림</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="header-description">처음 식물을 키우는 사람도 쉽게 관리할 수 있도록 돕습니다.</p>
   </header>
 
   <main>
@@ -253,14 +262,24 @@
     <section id="plantListSection" class="content-section plant-list-section">
       <div class="list-header">
         <h2>내 반려식물 알림 목록</h2>
-        <span id="plantCountBadge" class="count-badge">0개 관리 중</span>
+        <span id="plantCountBadge" class="count-badge" aria-label="현재 표시 중인 식물 0개">0개 관리 중</span>
       </div>
       <p class="section-desc">등록된 식물의 물주기 일정을 확인하고, 물을 준 뒤 상태를 갱신하거나 알림을 관리할 수 있습니다.</p>
+
+      <!-- 10주차: 반려식물 알림 표시 범위 필터 -->
+      <div class="plan-filters" role="group" aria-label="반려식물 알림 표시 범위">
+        <button class="filter-button is-active"
+          type="button" data-filter="all" aria-pressed="true">전체</button>
+        <button class="filter-button"
+          type="button" data-filter="active" aria-pressed="false">관리 중</button>
+        <button class="filter-button"
+          type="button" data-filter="cancelled" aria-pressed="false">알림 취소됨</button>
+      </div>
 
       <!-- 결과 없음 (빈 상태 안내) -->
       <div id="plantEmptyState" class="empty-state">
         <p class="empty-icon" aria-hidden="true">🪴</p>
-        <p class="empty-title">등록된 반려식물 알림이 없습니다</p>
+        <h3 class="empty-title">등록된 반려식물 알림이 없습니다</h3>
         <p class="empty-desc">위의 물주기 알림 신청을 통해 키우시는 식물을 등록해 보세요.</p>
         <button id="emptyAddButton" class="secondary-button" type="button">식물 등록하러 가기</button>
       </div>
