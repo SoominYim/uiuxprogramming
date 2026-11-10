@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- 11주차: 키보드 접근성을 위한 본문 바로가기 스킵 링크 -->
+  <a class="skip-link" href="#top">본문 바로가기</a>
+
   <!-- UX 계획
     사용자: 처음 식물을 키우는 자취생
     목적: 식물 관리 방법과 물주기 시기를 이해한다.
@@ -36,7 +39,7 @@
     <p class="header-description">처음 식물을 키우는 사람도 쉽게 관리할 수 있도록 돕습니다.</p>
   </header>
 
-  <main>
+  <main id="top" tabindex="-1">
     <section id="about" class="content-section">
       <h2>서비스 소개</h2>
       <div class="about-layout">
@@ -46,7 +49,7 @@
           <p>이용 방법을 확인하고 필요한 식물의 물주기 알림을 신청해 보세요.</p>
         </div>
         <img class="service-image" src="assets/images/service.jpg"
-             alt="화분에 물을 주는 사용자">
+             alt="실내에서 반려식물 화분에 조리개로 물을 주며 흙과 잎의 상태를 살피는 사용자 화면">
       </div>
     </section>
 
@@ -119,7 +122,7 @@
           maxlength="10"
           placeholder="10자 이내로 입력"
         >
-        <p id="userNameCount" aria-live="polite">0 / 10</p>
+        <p id="userNameCount">0 / 10</p>
       </div>
 
       <div class="interaction-item">
@@ -164,7 +167,7 @@
             >
             <div class="field-meta">
               <p id="plant-name-help">식물을 구분할 수 있도록 2자 이상 입력해 주세요.</p>
-              <p id="plant-name-count" aria-live="polite">0 / 20자</p>
+              <p id="plant-name-count">0 / 20자</p>
             </div>
             <p id="plant-name-error" class="field-error" role="alert"></p>
           </div>
@@ -262,7 +265,7 @@
     <section id="plantListSection" class="content-section plant-list-section">
       <div class="list-header">
         <h2>내 반려식물 알림 목록</h2>
-        <span id="plantCountBadge" class="count-badge" aria-label="현재 표시 중인 식물 0개">0개 관리 중</span>
+        <span id="plantCountBadge" class="count-badge" role="status" aria-live="polite" aria-label="현재 표시 중인 식물 0개">0개 관리 중</span>
       </div>
       <p class="section-desc">등록된 식물의 물주기 일정을 확인하고, 물을 준 뒤 상태를 갱신하거나 알림을 관리할 수 있습니다.</p>
 

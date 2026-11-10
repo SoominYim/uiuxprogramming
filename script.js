@@ -521,6 +521,11 @@ function updateCurrentNav() {
       link.removeAttribute("aria-current");
     }
   });
+
+  // 11주차: 현재 메뉴 위치를 브라우저 탭 제목(document.title)에 실시간 반영
+  const currentLink = document.querySelector('.main-nav a[aria-current="page"]');
+  const pageName = currentLink ? currentLink.textContent.trim() : "홈";
+  document.title = `${pageName} | 초록달력`;
 }
 
 window.addEventListener("hashchange", updateCurrentNav);
@@ -534,6 +539,17 @@ if (menuToggle && mainNav) {
     menuToggle.setAttribute("aria-expanded", String(isOpen));
   });
 }
+
+// 11주차: Esc 키로 열린 모바일 메뉴 닫기 및 초점 복귀
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !mainNav || !mainNav.classList.contains("is-open")) return;
+  mainNav.classList.remove("is-open");
+  if (menuToggle) {
+    menuToggle.textContent = "메뉴 열기";
+    menuToggle.setAttribute("aria-expanded", "false");
+    menuToggle.focus();
+  }
+});
 
 // 3. 목적지 선택 시 모바일 메뉴 자동 닫기 및 알림 신청 섹션 열기
 navLinks.forEach((link) => {
@@ -647,15 +663,21 @@ function renderPlantList() {
     plantCardsContainer.innerHTML = "";
 
     if (isFiltered) {
-      // 특정 필터 선택 시 결과 없음
+      // 11주차: 특정 필터 결과가 없을 때 '전체 식물 보기' 버튼 제공 및 초점 이동 준비
       if (emptyTitle) emptyTitle.textContent = "선택한 상태의 반려식물이 없어요.";
       if (emptyDesc) emptyDesc.textContent = "다른 상태 필터를 선택하여 등록된 식물을 확인해 보세요.";
-      if (emptyActionBtn) emptyActionBtn.hidden = true;
+      if (emptyActionBtn) {
+        emptyActionBtn.hidden = false;
+        emptyActionBtn.textContent = "전체 식물 보기";
+      }
     } else {
       // 전체 목록이 아예 없을 때
       if (emptyTitle) emptyTitle.textContent = "등록된 반려식물 알림이 없습니다";
       if (emptyDesc) emptyDesc.textContent = "위의 물주기 알림 신청을 통해 키우시는 식물을 등록해 보세요.";
-      if (emptyActionBtn) emptyActionBtn.hidden = false;
+      if (emptyActionBtn) {
+        emptyActionBtn.hidden = false;
+        emptyActionBtn.textContent = "식물 등록하러 가기";
+      }
     }
     return;
   }
@@ -728,6 +750,15 @@ filterButtons.forEach((button) => {
     });
 
     renderPlantList();
+
+    // 11주차: 필터 조작 시 결과 개수와 결과 없음을 실시간 음성(aria-live)으로 전달
+    const count = getVisiblePlants().length;
+    const filterName = button.textContent.trim();
+    if (plantCountBadge) {
+      plantCountBadge.textContent = count > 0
+        ? `${filterName} 식물 ${count}개가 표시됩니다.`
+        : `${filterName} 식물이 없습니다. 다른 상태를 선택해 보세요.`;
+    }
   });
 });
 
@@ -738,13 +769,21 @@ if (viewListButton && plantListSection) {
   });
 }
 
-// 빈 상태에서 '식물 등록하러 가기' 클릭 시 1단계로 이동
-if (emptyAddButton && plantFlow) {
+// 11주차: 빈 상태 버튼 클릭 시 전체 보기 복귀 또는 1단계 등록 이동
+if (emptyAddButton) {
   emptyAddButton.addEventListener("click", () => {
-    plantFlow.hidden = false;
-    showPlantStep(1);
-    plantFlow.scrollIntoView({ behavior: "smooth" });
-    plantName.focus();
+    if (currentFilter !== "all") {
+      const allButton = document.querySelector('.filter-button[data-filter="all"]');
+      if (allButton) {
+        allButton.click();
+        allButton.focus();
+      }
+    } else if (plantFlow) {
+      plantFlow.hidden = false;
+      showPlantStep(1);
+      plantFlow.scrollIntoView({ behavior: "smooth" });
+      plantName?.focus();
+    }
   });
 }
 
@@ -767,9 +806,14 @@ if (plantCardsContainer) {
     } else if (action === "cancel") {
       plant.cancelled = true;
       renderPlantList();
+      // 11주차: 카드가 사라진 뒤 키보드 초점이 길을 잃지 않도록 현재 선택된 필터 버튼으로 초점 이동
+      const selectedFilter = document.querySelector('.filter-button[aria-pressed="true"]');
+      selectedFilter?.focus();
     } else if (action === "restore") {
       plant.cancelled = false;
       renderPlantList();
+      const selectedFilter = document.querySelector('.filter-button[aria-pressed="true"]');
+      selectedFilter?.focus();
     }
   });
 }
