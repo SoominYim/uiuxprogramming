@@ -474,7 +474,7 @@ if (plantRestart) {
 }
 
 // ==========================================
-// 10주차: 내비게이션 UI, 현재 위치 감지, 목록 필터 & 탐색
+// 10~12주차: 내비게이션 UI, 재사용 가능한 UI 컴포넌트 (식물 카드 & 상세 모달), 상태 관리
 // ==========================================
 
 // 내비게이션 및 모바일 메뉴 요소
@@ -482,7 +482,7 @@ const navLinks = document.querySelectorAll(".main-nav a");
 const menuToggle = document.querySelector("#menu-toggle");
 const mainNav = document.querySelector("#main-nav");
 
-// 10주차 필터 버튼 및 상태
+// 필터 버튼 및 상태
 const filterButtons = document.querySelectorAll(".filter-button");
 let currentFilter = "all";
 
@@ -493,6 +493,13 @@ const plantCardsContainer = document.querySelector("#plantCardsContainer");
 const emptyAddButton = document.querySelector("#emptyAddButton");
 const viewListButton = document.querySelector("#viewListButton");
 
+// 12주차: 상세 모달 대화상자(dialog) 요소
+const plantDialog = document.querySelector("#plant-dialog");
+const dialogTitle = document.querySelector("#dialog-title");
+const dialogContent = document.querySelector("#dialog-content");
+const dialogCloseBtn = plantDialog ? plantDialog.querySelector(".dialog-close") : null;
+let lastFocusedElement = null;
+
 // 식물 종류별 권장 주기 (일수)
 const plantCycleDays = {
   monstera: 7,
@@ -501,10 +508,22 @@ const plantCycleDays = {
   tablepalm: 4
 };
 
-// 등록된 식물 목록 상태 배열
-let registeredPlants = [];
+// 등록된 식물 목록 상태 배열 (12주차: 접속 시 컴포넌트를 즉시 체험할 수 있도록 샘플 데이터 1건 포함)
+let registeredPlants = [
+  {
+    id: 1,
+    name: "초록 몬스테라",
+    type: "monstera",
+    typeName: "몬스테라",
+    cycleDays: 7,
+    lastDate: "2026-11-12",
+    isWateredToday: false,
+    nutrition: "월 1회 액체 비료",
+    cancelled: false
+  }
+];
 
-// 1. 현재 메뉴 위치 표시 함수
+// 1. 현재 메뉴 위치 표시 함수 (12주차: 접근성 표준 aria-current="location" 적용)
 function updateCurrentNav() {
   const currentHash = window.location.hash;
 
@@ -516,16 +535,16 @@ function updateCurrentNav() {
     link.classList.toggle("is-current", current);
 
     if (current) {
-      link.setAttribute("aria-current", "page");
+      link.setAttribute("aria-current", "location");
     } else {
       link.removeAttribute("aria-current");
     }
   });
 
-  // 11주차: 현재 메뉴 위치를 브라우저 탭 제목(document.title)에 실시간 반영
-  const currentLink = document.querySelector('.main-nav a[aria-current="page"]');
+  // 현재 메뉴 위치를 브라우저 탭 제목(document.title)에 실시간 반영
+  const currentLink = document.querySelector('.main-nav a[aria-current="location"]');
   const pageName = currentLink ? currentLink.textContent.trim() : "홈";
-  document.title = `${pageName} | 초록달력`;
+  document.title = `${pageName} | ${serviceName}`;
 }
 
 window.addEventListener("hashchange", updateCurrentNav);
@@ -540,7 +559,7 @@ if (menuToggle && mainNav) {
   });
 }
 
-// 11주차: Esc 키로 열린 모바일 메뉴 닫기 및 초점 복귀
+// Esc 키로 열린 모바일 메뉴 닫기 및 초점 복귀
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape" || !mainNav || !mainNav.classList.contains("is-open")) return;
   mainNav.classList.remove("is-open");
@@ -551,7 +570,7 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-// 3. 목적지 선택 시 모바일 메뉴 자동 닫기 및 알림 신청 섹션 열기
+// 목적지 선택 시 모바일 메뉴 자동 닫기 및 알림 신청 섹션 열기
 navLinks.forEach((link) => {
   link.addEventListener("click", () => {
     if (mainNav && menuToggle) {
@@ -571,7 +590,7 @@ navLinks.forEach((link) => {
 // HTML 특수문자 이스케이프 함수
 function escapeHtml(text) {
   const div = document.createElement("div");
-  div.textContent = text;
+  div.textContent = text || "";
   return div.innerHTML;
 }
 
@@ -630,12 +649,167 @@ function calculateNextWatering(lastDateStr, cycleDays, isWateredToday) {
   }
 }
 
-// 4. 10주차 조건에 맞는 식물 목록 필터링 함수
+// 조건에 맞는 식물 목록 필터링 함수
 function getVisiblePlants() {
   return registeredPlants.filter((plant) => {
     if (currentFilter === "all") return true;
     if (currentFilter === "cancelled") return Boolean(plant.cancelled);
     return !plant.cancelled; // "active" (관리 중)
+  });
+}
+
+// ==========================================
+// [12주차 UI 컴포넌트 1] 반려식물 카드 컴포넌트 (재사용 가능한 순수 생성 함수)
+// ==========================================
+function createPlantCard(plant) {
+  const info = calculateNextWatering(
+    plant.lastDate,
+    plant.cycleDays,
+    plant.isWateredToday
+  );
+  const isCancelled = Boolean(plant.cancelled);
+
+  const card = document.createElement("article");
+  card.className = `plant-card ${isCancelled ? "is-cancelled" : ""}`;
+  card.dataset.id = String(plant.id);
+
+  card.innerHTML = `
+    <div class="plant-card-top card-top">
+      <div>
+        <h3 class="plant-title">${escapeHtml(plant.name)}</h3>
+        <span class="plant-type-tag">${escapeHtml(plant.typeName)} · 권장 ${plant.cycleDays}일마다</span>
+      </div>
+      <span class="plant-state dday-badge ${isCancelled ? "is-cancelled" : info.badgeClass}">
+        ${isCancelled ? "알림 중단" : info.ddayText}
+      </span>
+    </div>
+
+    <div class="plant-meta">
+      <p>
+        <strong>마지막 물 준 날:</strong>
+        <time datetime="${plant.lastDate}">${plant.lastDate}</time>
+      </p>
+      <p>
+        <strong>다음 물주기 예정:</strong>
+        <time datetime="${info.nextDateStr}">${isCancelled ? "알림 중단됨" : info.nextDateStr}</time>
+      </p>
+      ${plant.nutrition ? `<p><strong>영양제 알림:</strong> ${escapeHtml(plant.nutrition)}</p>` : ""}
+    </div>
+
+    <div class="plant-actions card-actions">
+      <button type="button" class="button button--ghost" data-action="open" data-id="${plant.id}" aria-label="${escapeHtml(plant.name)} 상세 정보 보기">
+        상세 보기
+      </button>
+      ${
+        !isCancelled
+          ? `<button type="button" class="button button--primary btn-water" data-action="water" data-id="${plant.id}">
+              🌱 오늘 물주기
+            </button>`
+          : ""
+      }
+      <button type="button" class="button ${isCancelled ? "button--primary btn-restore" : "button--danger btn-delete"}" data-action="toggle" data-id="${plant.id}">
+        ${isCancelled ? "↺ 알림 다시 시작" : "알림 취소"}
+      </button>
+    </div>
+  `;
+
+  return card;
+}
+
+// ==========================================
+// [12주차 UI 컴포넌트 2] 상세 정보 모달 대화상자(dialog) 컴포넌트 제어
+// ==========================================
+function openPlantModal(plantId) {
+  if (!plantDialog) return;
+
+  const plant = registeredPlants.find((item) => item.id === plantId);
+  if (!plant) return;
+
+  const info = calculateNextWatering(
+    plant.lastDate,
+    plant.cycleDays,
+    plant.isWateredToday
+  );
+  const isCancelled = Boolean(plant.cancelled);
+
+  // 모달 내용 바인딩
+  if (dialogTitle) {
+    dialogTitle.textContent = `${plant.name} 상세 정보`;
+  }
+
+  if (dialogContent) {
+    dialogContent.innerHTML = `
+      <dl>
+        <dt>식물 애칭</dt>
+        <dd><strong>${escapeHtml(plant.name)}</strong></dd>
+
+        <dt>식물 품종</dt>
+        <dd>${escapeHtml(plant.typeName)} (권장 주기: ${plant.cycleDays}일마다)</dd>
+
+        <dt>알림 상태</dt>
+        <dd>${isCancelled ? '<span class="status-badge is-cancelled">알림 취소됨</span>' : '<span class="status-badge is-active">정상 관리 중</span>'}</dd>
+
+        <dt>마지막 물 준 날</dt>
+        <dd><time datetime="${plant.lastDate}">${plant.lastDate}</time></dd>
+
+        <dt>다음 물주기 예정일</dt>
+        <dd><time datetime="${info.nextDateStr}">${isCancelled ? "알림이 중단되었습니다" : `${info.nextDateStr} (${info.ddayText})`}</time></dd>
+
+        <dt>영양제 공급 주기</dt>
+        <dd>${escapeHtml(plant.nutrition || "설정된 영양제 알림 없음")}</dd>
+      </dl>
+    `;
+  }
+
+  // 이전 초점 저장 및 모달 열기
+  lastFocusedElement = document.activeElement;
+  plantDialog.showModal();
+
+  // 접근성: 모달 내부 닫기 버튼으로 초점 이동
+  if (dialogCloseBtn) {
+    dialogCloseBtn.focus();
+  }
+}
+
+function closePlantModal() {
+  if (!plantDialog || !plantDialog.open) return;
+  plantDialog.close();
+
+  // 접근성: 모달이 닫히면 직전에 클릭했던 원래 요소로 초점 복귀
+  if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+    lastFocusedElement.focus();
+  }
+  lastFocusedElement = null;
+}
+
+// 모달 닫기 버튼 이벤트
+if (dialogCloseBtn) {
+  dialogCloseBtn.addEventListener("click", closePlantModal);
+}
+
+// 모달 외부(백드롭) 클릭 시 닫기
+if (plantDialog) {
+  plantDialog.addEventListener("click", (event) => {
+    const rect = plantDialog.getBoundingClientRect();
+    const isClickedInDialog =
+      rect.top <= event.clientY &&
+      event.clientY <= rect.top + rect.height &&
+      rect.left <= event.clientX &&
+      event.clientX <= rect.left + rect.width;
+
+    if (!isClickedInDialog) {
+      closePlantModal();
+    }
+  });
+
+  // 네이티브 Esc 닫기 이벤트(cancel) 발생 시 원래 요소로 초점 복귀
+  plantDialog.addEventListener("cancel", () => {
+    setTimeout(() => {
+      if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+        lastFocusedElement.focus();
+      }
+      lastFocusedElement = null;
+    }, 0);
   });
 }
 
@@ -654,7 +828,6 @@ function renderPlantList() {
 
   const emptyTitle = plantEmptyState.querySelector(".empty-title");
   const emptyDesc = plantEmptyState.querySelector(".empty-desc");
-  const emptyActionBtn = document.querySelector("#emptyAddButton");
 
   // 분기 1: 표시할 식물이 없는 경우
   if (count === 0) {
@@ -663,79 +836,32 @@ function renderPlantList() {
     plantCardsContainer.innerHTML = "";
 
     if (isFiltered) {
-      // 11주차: 특정 필터 결과가 없을 때 '전체 식물 보기' 버튼 제공 및 초점 이동 준비
       if (emptyTitle) emptyTitle.textContent = "선택한 상태의 반려식물이 없어요.";
       if (emptyDesc) emptyDesc.textContent = "다른 상태 필터를 선택하여 등록된 식물을 확인해 보세요.";
-      if (emptyActionBtn) {
-        emptyActionBtn.hidden = false;
-        emptyActionBtn.textContent = "전체 식물 보기";
+      if (emptyAddButton) {
+        emptyAddButton.hidden = false;
+        emptyAddButton.textContent = "전체 식물 보기";
       }
     } else {
-      // 전체 목록이 아예 없을 때
       if (emptyTitle) emptyTitle.textContent = "등록된 반려식물 알림이 없습니다";
       if (emptyDesc) emptyDesc.textContent = "위의 물주기 알림 신청을 통해 키우시는 식물을 등록해 보세요.";
-      if (emptyActionBtn) {
-        emptyActionBtn.hidden = false;
-        emptyActionBtn.textContent = "식물 등록하러 가기";
+      if (emptyAddButton) {
+        emptyAddButton.hidden = false;
+        emptyAddButton.textContent = "식물 등록하러 가기";
       }
     }
     return;
   }
 
-  // 분기 2: 표시할 식물이 있는 경우 (카드 목록 표시)
+  // 분기 2: 표시할 식물이 있는 경우 (재사용 컴포넌트 createPlantCard 호출)
   plantEmptyState.hidden = true;
   plantCardsContainer.hidden = false;
+  plantCardsContainer.innerHTML = "";
 
-  plantCardsContainer.innerHTML = visiblePlants
-    .map((plant) => {
-      const info = calculateNextWatering(
-        plant.lastDate,
-        plant.cycleDays,
-        plant.isWateredToday
-      );
-
-      const isCancelled = Boolean(plant.cancelled);
-
-      return `
-        <article class="plant-card ${isCancelled ? "is-cancelled" : ""}" data-id="${plant.id}">
-          <div>
-            <div class="card-top">
-              <div>
-                <h3 class="plant-title">${escapeHtml(plant.name)}</h3>
-                <span class="plant-type-tag">${escapeHtml(plant.typeName)} (권장: ${plant.cycleDays}일마다)</span>
-              </div>
-              <span class="dday-badge ${isCancelled ? "is-cancelled" : info.badgeClass}">
-                ${isCancelled ? "알림 취소됨" : info.ddayText}
-              </span>
-            </div>
-            <div class="plant-meta">
-              <p><strong>마지막 물 준 날:</strong> ${plant.lastDate}</p>
-              <p><strong>다음 물주기 예정:</strong> ${isCancelled ? "알림 중단됨" : info.nextDateStr}</p>
-              ${plant.nutrition ? `<p><strong>영양제 알림:</strong> ${escapeHtml(plant.nutrition)}</p>` : ""}
-            </div>
-          </div>
-          <div class="card-actions">
-            ${
-              isCancelled
-                ? `
-              <button type="button" class="btn-restore" data-action="restore" data-id="${plant.id}">
-                ↺ 알림 다시 시작하기
-              </button>
-            `
-                : `
-              <button type="button" class="btn-water" data-action="water" data-id="${plant.id}">
-                🌱 오늘 물주기 완료
-              </button>
-              <button type="button" class="btn-delete" data-action="cancel" data-id="${plant.id}">
-                알림 취소
-              </button>
-            `
-            }
-          </div>
-        </article>
-      `;
-    })
-    .join("");
+  visiblePlants.forEach((plant) => {
+    const cardEl = createPlantCard(plant);
+    plantCardsContainer.appendChild(cardEl);
+  });
 }
 
 // 6. 필터 버튼 클릭 이벤트 연결
@@ -751,7 +877,7 @@ filterButtons.forEach((button) => {
 
     renderPlantList();
 
-    // 11주차: 필터 조작 시 결과 개수와 결과 없음을 실시간 음성(aria-live)으로 전달
+    // 필터 조작 시 음성 안내
     const count = getVisiblePlants().length;
     const filterName = button.textContent.trim();
     if (plantCountBadge) {
@@ -769,7 +895,7 @@ if (viewListButton && plantListSection) {
   });
 }
 
-// 11주차: 빈 상태 버튼 클릭 시 전체 보기 복귀 또는 1단계 등록 이동
+// 빈 상태 버튼 클릭 시 전체 보기 복귀 또는 1단계 등록 이동
 if (emptyAddButton) {
   emptyAddButton.addEventListener("click", () => {
     if (currentFilter !== "all") {
@@ -787,7 +913,7 @@ if (emptyAddButton) {
   });
 }
 
-// 카드 내 이벤트 위임: '오늘 물주기 완료'(상태 갱신), '알림 취소', '알림 다시 시작'
+// 카드 내 이벤트 위임: '상세 보기', '오늘 물주기 완료', '알림 상태 토글(취소/다시시작)'
 if (plantCardsContainer) {
   plantCardsContainer.addEventListener("click", (event) => {
     const target = event.target.closest("button");
@@ -798,22 +924,20 @@ if (plantCardsContainer) {
     const plant = registeredPlants.find((item) => item.id === id);
     if (!plant) return;
 
-    if (action === "water") {
+    if (action === "open") {
+      openPlantModal(id);
+    } else if (action === "water") {
       const todayStr = formatDateToString(new Date());
       plant.lastDate = todayStr;
       plant.isWateredToday = true;
       renderPlantList();
-    } else if (action === "cancel") {
-      plant.cancelled = true;
+    } else if (action === "toggle") {
+      plant.cancelled = !plant.cancelled;
       renderPlantList();
-      // 11주차: 카드가 사라진 뒤 키보드 초점이 길을 잃지 않도록 현재 선택된 필터 버튼으로 초점 이동
-      const selectedFilter = document.querySelector('.filter-button[aria-pressed="true"]');
-      selectedFilter?.focus();
-    } else if (action === "restore") {
-      plant.cancelled = false;
-      renderPlantList();
-      const selectedFilter = document.querySelector('.filter-button[aria-pressed="true"]');
-      selectedFilter?.focus();
+
+      // 카드가 사라지거나 변경된 경우 초점 관리
+      const currentSelectedFilter = document.querySelector('.filter-button[aria-pressed="true"]');
+      currentSelectedFilter?.focus();
     }
   });
 }
