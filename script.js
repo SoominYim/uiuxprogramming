@@ -189,8 +189,15 @@ const plantRestart = document.querySelector("#plantRestart");
 
 const stepNames = ["식물 정보 입력", "식물 종류 선택", "신청 내용 확인"];
 let currentPlantStep = 1;
+let isSubmitting = false;
 
-// 단계 표시 및 진행도 갱신 함수 (단계 제목에 초점 이동 포함)
+// 13주차: 임시 보관 키 및 상태 안내 요소
+const draftKey = "greenday-plant-draft-v1";
+const draftNotice = document.querySelector("#draftNotice");
+const draftStatus = document.querySelector("#draft-status");
+const draftDiscard = document.querySelector("#draft-discard");
+
+// 단계 표시 및 진행도 갱신 함수 (단계 제목에 초점 이동 및 13주차 임시 보관 연동)
 function showPlantStep(step) {
   currentPlantStep = step;
   plantSteps.forEach((item) => {
@@ -205,6 +212,16 @@ function showPlantStep(step) {
       heading.tabIndex = -1;
       heading.focus({ preventScroll: true });
     }
+  }
+
+  const plantFlowEl = document.querySelector("#plantFlow");
+  if (plantFlowEl) {
+    plantFlowEl.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+
+  // 13주차: 1~3단계 위치 변경 시 임시 보관
+  if (step <= 3 && typeof saveDraft === "function") {
+    saveDraft();
   }
 }
 
@@ -346,16 +363,22 @@ if (plantBack2) {
   });
 }
 
+// 13주차: 3단계 요약 문구 업데이트 함수 (복구 시에도 재사용)
+function updatePlantSummary() {
+  if (!plantSummary || !plantType) return;
+  const selectedTypeName = plantType.options[plantType.selectedIndex]?.text || "";
+  const nutritionChecked = nutritionOption && nutritionOption.checked;
+  const selectedRadio = nutritionCycleInputs.find((r) => r.checked);
+  const nutritionCycleText = nutritionChecked && selectedRadio ? selectedRadio.value : "미설정";
+  const nutritionLabel = nutritionChecked ? ` · 영양제 알림: ${nutritionCycleText}` : "";
+
+  plantSummary.textContent = `${plantName ? plantName.value.trim() : ""} · 마지막 물 준 날: ${plantDate ? plantDate.value : ""} · ${selectedTypeName}${nutritionLabel}`;
+}
+
 // 2단계 -> 3단계: 내용 확인으로 이동 (입력값 및 선택값 요약 반영)
 if (plantNext2) {
   plantNext2.addEventListener("click", () => {
-    const selectedTypeName = plantType.options[plantType.selectedIndex].text;
-    const nutritionChecked = nutritionOption && nutritionOption.checked;
-    const selectedRadio = nutritionCycleInputs.find((r) => r.checked);
-    const nutritionCycleText = nutritionChecked && selectedRadio ? selectedRadio.value : "미설정";
-    const nutritionLabel = nutritionChecked ? ` · 영양제 알림: ${nutritionCycleText}` : "";
-
-    plantSummary.textContent = `${plantName.value.trim()} · 마지막 물 준 날: ${plantDate.value} · ${selectedTypeName}${nutritionLabel}`;
+    updatePlantSummary();
     showPlantStep(3);
   });
 }
@@ -367,14 +390,19 @@ if (plantBack3) {
   });
 }
 
-// 9주차 유닛 03: 폼 submit 이벤트와 저장/로딩 상태 처리
+// 9주차 유닛 03 & 13주차: 폼 submit 이벤트와 저장/로딩 상태 처리 (저장 중 잠금 포함)
 function setSubmitState(loading, message) {
+  isSubmitting = loading;
   if (plantForm) {
     plantForm.setAttribute("aria-busy", String(loading));
   }
   if (plantComplete) {
     plantComplete.disabled = loading;
-    plantComplete.textContent = loading ? "저장하는 중…" : "알림 신청 완료하기 →";
+    plantComplete.textContent = loading ? "저장하는 중..." : "알림 신청 완료하기 →";
+  }
+  // 13주차: 저장 중 '처음부터 입력하기' 버튼 비활성화 잠금
+  if (draftDiscard) {
+    draftDiscard.disabled = loading;
   }
   if (submitStatus) {
     submitStatus.textContent = message;
@@ -440,6 +468,8 @@ if (plantForm) {
 
     try {
       await persistPlantPlan(newPlant);
+      // 13주차: 저장 성공 시 임시 보관 데이터 완전 삭제
+      clearDraft();
       setSubmitState(false, "알림 신청이 성공적으로 완료되었습니다.");
       showPlantStep(4);
     } catch {
@@ -454,6 +484,8 @@ if (plantForm) {
 // 4단계 -> 다시 시작: 모든 입력값과 화면 상태 완전 초기화
 if (plantRestart) {
   plantRestart.addEventListener("click", () => {
+    // 13주차: 새 식물 등록 시 이전 임시값 완전 삭제
+    clearDraft();
     if (plantForm) plantForm.reset();
     syncNutritionFields();
 
@@ -472,6 +504,176 @@ if (plantRestart) {
     if (plantName) plantName.focus();
   });
 }
+// ==========================================
+// 13주차: 입력 상태의 임시 보관(sessionStorage) · 복구 · 초기화 구현
+// ==========================================
+
+// 1. 현재 폼 입력값과 진행 단계 추출
+function getDraftValues() {
+  const selectedRadio = nutritionCycleInputs.find((r) => r.checked);
+  return {
+    title: plantName ? plantName.value : "",
+    date: plantDate ? plantDate.value : "",
+    type: plantType ? plantType.value : "monstera",
+    nutrition: nutritionOption ? nutritionOption.checked : false,
+    nutritionCycle: selectedRadio ? selectedRadio.value : "월 1회",
+    step: currentPlantStep
+  };
+}
+
+// 2. 실제 의미 있는 입력/선택 변경 여부 판별 (빈 기본 양식은 보관 제외)
+function hasDraftInput(draft) {
+  return Boolean(
+    (draft.title && draft.title.trim() !== "") ||
+    (draft.date && draft.date.trim() !== "") ||
+    (draft.type && draft.type !== "monstera") ||
+    draft.nutrition ||
+    (draft.step && draft.step > 1)
+  );
+}
+
+// 3. 입력값 임시 보관 (sessionStorage)
+function saveDraft() {
+  const draft = getDraftValues();
+  if (!hasDraftInput(draft)) {
+    clearDraft();
+    return;
+  }
+  try {
+    sessionStorage.setItem(draftKey, JSON.stringify(draft));
+    const savedMessage = "작성 내용을 임시 보관했어요.";
+    if (draftStatus && draftStatus.textContent !== savedMessage && !draftStatus.textContent.includes("불러왔어요")) {
+      draftStatus.textContent = savedMessage;
+    }
+    if (draftDiscard) {
+      draftDiscard.hidden = false;
+    }
+  } catch {
+    if (draftStatus) {
+      draftStatus.textContent =
+        "작성 내용을 임시 보관하지 못했어요. 새로고침하면 작성 내용이 사라질 수 있어요.";
+    }
+  }
+}
+
+// 4. 입력창 및 선택 변경 시 실시간 보관 이벤트 연결
+if (plantForm) {
+  plantForm.addEventListener("input", saveDraft);
+  plantForm.addEventListener("change", saveDraft);
+}
+
+// 5. 보관값 파싱 및 무결성 검사
+function readDraft() {
+  try {
+    const draft = JSON.parse(sessionStorage.getItem(draftKey));
+    if (!draft || typeof draft.title !== "string") {
+      return null;
+    }
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
+// 6. 초안 복구 실행 함수
+function restoreDraft() {
+  const draft = readDraft();
+  if (!draft) return;
+
+  // 알림 신청 섹션이 숨겨져 있다면 노출
+  if (plantFlow) {
+    plantFlow.hidden = false;
+  }
+
+  // 1단계 입력값 복구 및 글자 수 경험 갱신
+  if (plantName) {
+    plantName.value = draft.title.slice(0, 20);
+  }
+  if (plantDate) {
+    plantDate.value = draft.date || "";
+  }
+  updatePlantNameExperience();
+
+  // 2단계 식물 종류 및 영양제 옵션 복구
+  if (plantType && draft.type) {
+    plantType.value = draft.type;
+    plantType.dispatchEvent(new Event("change"));
+  }
+
+  if (nutritionOption) {
+    nutritionOption.checked = draft.nutrition === true;
+  }
+  if (draft.nutritionCycle) {
+    const targetRadio = nutritionCycleInputs.find((r) => r.value === draft.nutritionCycle);
+    if (targetRadio) {
+      targetRadio.checked = true;
+    }
+  }
+  syncNutritionFields();
+
+  // 단계 검사: 제목이 2자 이상이고 날짜가 있어야 2·3단계 복구 허용
+  const validStep = Number.isInteger(draft.step) && draft.step >= 1 && draft.step <= 3;
+  const hasValidInputs = plantName && plantName.value.trim().length >= 2 && plantDate && plantDate.value;
+  const step = validStep && hasValidInputs ? draft.step : 1;
+
+  if (step === 3) {
+    updatePlantSummary();
+  }
+  showPlantStep(step);
+
+  if (draftStatus) {
+    draftStatus.textContent = `작성 내용을 불러왔어요. ${step}단계부터 이어서 작성하세요.`;
+  }
+  if (draftDiscard) {
+    draftDiscard.hidden = false;
+  }
+}
+
+// 7. 초안 삭제 함수
+function clearDraft() {
+  try {
+    sessionStorage.removeItem(draftKey);
+  } catch {}
+  if (draftDiscard) {
+    draftDiscard.hidden = true;
+  }
+  if (draftStatus) {
+    draftStatus.textContent = "";
+  }
+}
+
+// 8. 처음부터 입력하기 버튼 클릭 이벤트
+if (draftDiscard) {
+  draftDiscard.addEventListener("click", () => {
+    if (isSubmitting) return;
+    clearDraft();
+    if (plantForm) plantForm.reset();
+    syncNutritionFields();
+
+    if (plantNameCount) plantNameCount.textContent = "0 / 20자";
+    if (plantNameHelp) plantNameHelp.textContent = "식물을 구분할 수 있도록 2자 이상 입력해 주세요.";
+    if (plantNameError) plantNameError.textContent = "";
+    if (plantDateError) plantDateError.textContent = "";
+
+    if (plantName) plantName.removeAttribute("aria-invalid");
+    if (plantDate) plantDate.removeAttribute("aria-invalid");
+    if (plantNameField) plantNameField.classList.remove("is-valid", "has-error");
+    if (plantDateField) plantDateField.classList.remove("has-error");
+    updatePlantNameExperience();
+
+    showPlantStep(1);
+    if (draftStatus) {
+      draftStatus.textContent = "처음부터 입력할 수 있어요.";
+    }
+    if (plantName) {
+      plantName.focus();
+    }
+  });
+}
+
+// 새로고침 직후 초안 복구 실행
+restoreDraft();
+
 
 // ==========================================
 // 10~12주차: 내비게이션 UI, 재사용 가능한 UI 컴포넌트 (식물 카드 & 상세 모달), 상태 관리

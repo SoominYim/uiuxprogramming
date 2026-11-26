@@ -151,6 +151,14 @@
       <h2>물주기 알림 신청</h2>
       <p id="plantProgress" class="flow-progress" aria-live="polite">1 / 3 · 식물 정보 입력</p>
 
+            <!-- 13주차: 작성 중 과업 복구 안내 및 초기화 영역 -->
+      <div class="draft-notice" id="draftNotice">
+        <p id="draft-status" role="status" aria-live="polite"></p>
+        <button id="draft-discard" class="button button--ghost" type="button" hidden>
+          처음부터 입력하기
+        </button>
+      </div>
+
       <form id="plantForm" novalidate aria-busy="false">
         <!-- 1단계: 식물 정보 입력 -->
         <section class="plant-step" data-step="1">
